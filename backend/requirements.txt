@@ -4,3 +4,4 @@ psycopg2
 djoser
 django-extra-fields
 pillow
+django-filter

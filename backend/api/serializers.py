@@ -1,20 +1,31 @@
-from rest_framework import serializers
-from api.models import User, Tag, Ingredient, Receipt, ReceiptIngredient
-from rest_framework.fields import ListField, DictField
-from django.core.files.base import ContentFile
 import base64
+
+from api.models import (Favorite, Ingredient, Receipt, ReceiptIngredient,
+                        ShoppingCart, Subscribe, Tag, User)
+from django.core.files.base import ContentFile
+from rest_framework import serializers
+from rest_framework.fields import DictField, ListField
 
 
 class UserSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ['email', 'id', 'username',
-                  'first_name', 'last_name', 'password', ]
+                  'first_name', 'last_name', 'password', 'is_subscribed']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Subscribe.objects.filter(user=request.user,
+                                            author=obj).exists()
+        return False
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -49,15 +60,32 @@ class ReceiptGetSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
     ingredients = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Receipt
         fields = ['id', 'name', 'ingredients', 'tags',
-                  'image', 'text', 'cooking_time', 'author']
+                  'image', 'text', 'cooking_time', 'author',
+                  'is_favorited', 'is_in_shopping_cart']
 
     def get_ingredients(self, obj):
         qs = obj.receiptingredient_set.all()
         return ReceiptIngredientSerializer(qs, many=True).data
+
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Favorite.objects.filter(
+                user=request.user, recipe=obj).exists()
+        return False
+
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return ShoppingCart.objects.filter(
+                user=request.user, recipe=obj).exists()
+        return False
 
 
 class Base64EncodedImageField(serializers.ImageField):
@@ -110,3 +138,24 @@ class ReceiptCreateSerializer(serializers.ModelSerializer):
             validated_data.pop('ingredients'), instance
         )
         return super().update(instance, validated_data)
+
+
+class UserSubscriptionSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = ReceiptGetSerializer(many=True, read_only=True)
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['email', 'id', 'username', 'first_name',
+                  'last_name', 'is_subscribed', 'recipes', 'recipes_count']
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Subscribe.objects.filter(user=request.user,
+                                            author=obj).exists()
+        return False
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()

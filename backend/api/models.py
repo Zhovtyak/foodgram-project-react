@@ -1,6 +1,6 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+from django.db import models
 
 
 class User(AbstractUser):
@@ -43,3 +43,22 @@ class ReceiptIngredient(models.Model):
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE,
                                    related_name='receipt_ingredient')
     amount = models.PositiveIntegerField()
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Receipt, on_delete=models.CASCADE,
+                               related_name='favorites')
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Receipt, on_delete=models.CASCADE,
+                               related_name='user_list')
+
+
+class Subscribe(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name='subscriber')
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name='creator')
