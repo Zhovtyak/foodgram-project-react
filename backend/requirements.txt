@@ -5,3 +5,4 @@ djoser
 django-extra-fields
 pillow
 django-filter
+python-dotenv

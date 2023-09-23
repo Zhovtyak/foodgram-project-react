@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-w$%5(%1s1y(\
-_6x4vx104ncib#+qb_5hy*8+v2o2^&cg(**-m#s'
-
-DEBUG = True
-
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+load_dotenv()
+SECRET_KEY = os.getenv('SECRET_KEY', 'secret')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'api.apps.ApiConfig',
@@ -96,9 +96,9 @@ DJOSER = {
     'LOGIN_FIELD': 'email'
 }
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-RU'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
