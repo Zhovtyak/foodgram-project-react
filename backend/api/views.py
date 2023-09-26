@@ -144,8 +144,7 @@ class ReceiptViewSet(viewsets.ModelViewSet):
                                                       'recipe': recipe.id})
             if serializer.is_valid():
                 serializer.save()
-                return Response(
-                                status=status.HTTP_201_CREATED)
+                return Response(status=status.HTTP_201_CREATED)
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
