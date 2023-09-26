@@ -1,6 +1,6 @@
-from django_filters.rest_framework import FilterSet, filters
+from django_filters.rest_framework import FilterSet, filters, CharFilter
 
-from .models import Receipt, Tag
+from recipes.models import Receipt, Tag, Ingredient
 
 
 class ReceiptFilter(FilterSet):
@@ -29,3 +29,11 @@ class ReceiptFilter(FilterSet):
         if self.request.user.is_authenticated and value:
             return queryset.filter(user_list__user=self.request.user)
         return queryset
+
+
+class IngredientFilter(FilterSet):
+    name = CharFilter(lookup_expr='icontains')
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']

@@ -1,10 +1,13 @@
 import base64
 
-from api.models import (Favorite, Ingredient, Receipt, ReceiptIngredient,
-                        ShoppingCart, Subscribe, Tag, User)
+from django.shortcuts import get_object_or_404
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from rest_framework.fields import DictField, ListField
+
+from recipes.models import (Favorite, Ingredient, Receipt, ReceiptIngredient,
+                            ShoppingCart, Tag)
+from users.models import User, Subscribe
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,14 +20,22 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            username=validated_data['username'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
         return user
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return Subscribe.objects.filter(user=request.user,
-                                            author=obj).exists()
+            return Subscribe.objects.filter(
+                user=request.user, author=obj
+            ).exists()
         return False
 
 
@@ -59,7 +70,8 @@ class ReceiptIngredientSerializer(serializers.ModelSerializer):
 class ReceiptGetSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
-    ingredients = serializers.SerializerMethodField()
+    ingredients = ReceiptIngredientSerializer(
+        source='receipt_ingredient', many=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -107,20 +119,46 @@ class ReceiptCreateSerializer(serializers.ModelSerializer):
                   'image', 'text', 'cooking_time', 'author']
 
     def validate_ingredients(self, ingredients):
+        if len(ingredients) < 1:
+            raise serializers.ValidationError(
+                'Должен быть выбран минимум один ингредиент')
+        ingredient_ids = set()
         for ingredient in ingredients:
             if not all(key in ingredient for key in ('id', 'amount')):
                 raise serializers.ValidationError(
-                    "Ингредиент должен иметь 'id' и 'amount'")
+                    'Ингредиент должен содержать id и amount')
+            ingredient_id = ingredient['id']
+            amount = int(ingredient['amount'])
+            if ingredient_id in ingredient_ids:
+                raise serializers.ValidationError(
+                    'Ингредиенты не должны повторяться')
+            ingredient_ids.add(ingredient_id)
+            get_object_or_404(Ingredient, id=ingredient_id)
+            if amount < 1 or amount > 10000:
+                raise serializers.ValidationError(
+                    'Количество ингредиента должно быть в диапазоне 1-10000')
         return ingredients
+
+    def validate_tags(self, tags):
+        if len(tags) < 1:
+            raise serializers.ValidationError(
+                'Должен быть выбран минимум один тэг')
+        tag_ids = set()
+        for tag in tags:
+            if tag.id in tag_ids:
+                raise serializers.ValidationError(
+                    'Тэги не должны повторяться')
+            tag_ids.add(tag.id)
+            get_object_or_404(Tag, id=tag.id)
+        return tags
 
     def create_ingredients(self, ingredients, receipt):
         ingredients_list = [
             ReceiptIngredient(
-                receipt=receipt,
-                ingredient=Ingredient.objects.get(id=ingredient['id']),
+                recipe=receipt,
+                ingredient=get_object_or_404(Ingredient, id=ingredient['id']),
                 amount=ingredient['amount']
-            ) for ingredient in ingredients
-        ]
+            ) for ingredient in ingredients]
         ReceiptIngredient.objects.bulk_create(ingredients_list)
 
     def create(self, validated_data):
@@ -159,3 +197,57 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscribe
+        fields = ['user', 'author']
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Subscribe.objects.all(),
+                fields=['user', 'author']
+            )
+        ]
+
+        def validate(self, data):
+            user = self.context['request'].user
+            author = data['author']
+
+            if user == author:
+                raise serializers.ValidationError('Нельзя подписаться на себя')
+            return data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ['user', 'recipe']
+
+    def validate(self, data):
+        user = data.get('user')
+        recipe = data.get('recipe')
+
+        if Favorite.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError('Уже добавлено в избранное.')
+        return data
+
+
+class ShoppingCartSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Receipt.objects.all())
+
+    class Meta:
+        model = ShoppingCart
+        fields = ['user', 'recipe']
+
+    def validate(self, data):
+        user = data.get('user')
+        recipe = data.get('recipe')
+
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError('Уже добавлено в покупках.')
+        return data
+
+    def create(self, validated_data):
+        return ShoppingCart.objects.create(**validated_data)
