@@ -1,8 +1,10 @@
 Django==3.2.3
 djangorestframework==3.12.4
-psycopg2
+psycopg2-binary==2.9.3 
 djoser
 django-extra-fields
 pillow
 django-filter
 python-dotenv
+gunicorn==20.1.0
+django-cors-headers==3.13.0

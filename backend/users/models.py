@@ -1,8 +1,8 @@
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-EMAIL_LENGTH = 254
-NAME_LENGTH = 150
+from .constants import EMAIL_LENGTH, NAME_LENGTH
 
 
 class User(AbstractUser):
@@ -41,6 +41,11 @@ class Subscribe(models.Model):
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='subscribe_unique')
         ]
+
+    def clean(self):
+        if self.user == self.author:
+            raise ValidationError(
+                'Пользователь не может подписаться сам на себя.')
 
     def __str__(self):
         return f"{self.user} - {self.author}"

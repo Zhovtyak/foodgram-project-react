@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+
 from recipes.models import (Tag, Ingredient, ReceiptIngredient,
                             Receipt, Favorite, ShoppingCart)
+from .constants import MIN_COOKING_TIME, MAX_COOKING_TIME
 
 
 class ReceiptIngredientInline(admin.TabularInline):
@@ -18,8 +20,8 @@ class ReceiptAdmin(admin.ModelAdmin):
     def clean(self):
         cleaned_data = super().clean()
         cooking_time = cleaned_data.get('cooking_time')
-        if cooking_time > 180 and cooking_time < 1:
-            raise ValidationError("Неправильное время приготовления")
+        if cooking_time > MIN_COOKING_TIME and cooking_time < MAX_COOKING_TIME:
+            raise ValidationError('Неправильное время приготовления')
         if len(cleaned_data.get('ingredients')) == 0:
             raise ValidationError('Надо добавить хотя бы один ингредиент')
 

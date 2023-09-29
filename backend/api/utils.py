@@ -15,7 +15,7 @@ def forming_shopping_cart_file(recipes):
 
     file_content = ''
     for name, details in ingredients.items():
-        file_content += f"{name}: {details['amount']} \
-            {details['measurement_unit']}\n"
+        file_content += (
+            f"{name}: {details['amount']} {details['measurement_unit']}\n")
 
     return file_content
