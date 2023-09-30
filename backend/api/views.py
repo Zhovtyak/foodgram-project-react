@@ -36,8 +36,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='me',
             permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
-        serializer = UserSerializer(
-                request.user, context={'request': request})
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], url_path='set_password',

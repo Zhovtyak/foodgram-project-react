@@ -136,8 +136,8 @@ class ReceiptCreateSerializer(serializers.ModelSerializer):
                   'image', 'text', 'cooking_time', 'author']
 
     def validate_cooking_time(self, cooking_time):
-        if (cooking_time > MAX_COOKING_TIME and
-                cooking_time < MIN_COOKING_TIME):
+        if (cooking_time > MAX_COOKING_TIME
+                and cooking_time < MIN_COOKING_TIME):
             raise serializers.ValidationError(
                 'Время приготовления должно быть в диапазоне 1-10000')
         return cooking_time
