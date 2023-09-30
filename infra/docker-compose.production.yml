@@ -12,7 +12,7 @@ services:
       - pg_data:/var/lib/postgresql/data
   
   backend:
-    build: ../backend/
+    image: toykion/foodgram_backend
     env_file: .env
     volumes:
       - static_value:/app/static/
@@ -21,14 +21,12 @@ services:
       - db
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: toykion/foodgram_frontend
     volumes:
       - ../frontend/:/app/result_build/
 
   nginx:
-    image: nginx:1.19.3
+    image: toykion/foodgram_nginx
     ports:
       - 8000:80
     volumes:
@@ -39,4 +37,3 @@ services:
       - media_value:/var/html/media/
     depends_on:
       - backend
-
