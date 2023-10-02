@@ -12,7 +12,7 @@ services:
       - pg_data:/var/lib/postgresql/data
   
   backend:
-    image: toykion/foodgram_backend
+    image: toykion/foodgram_backend:latest
     env_file: .env
     volumes:
       - static_value:/app/static/
@@ -21,7 +21,7 @@ services:
       - db
 
   frontend:
-    image: toykion/foodgram_frontend
+    image: toykion/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
 
