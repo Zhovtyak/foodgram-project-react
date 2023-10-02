@@ -1,39 +1,35 @@
-import re
-
-from django.core.validators import (MinValueValidator, ValidationError,
-                                    MaxValueValidator)
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.core.validators import RegexValidator
 
 from users.models import User
-from .constants import (СHARFIELD_MAX_LENGTH, COLOR_LENGTH,
+from .constants import (CHARFIELD_MAX_LENGTH, COLOR_LENGTH,
                         MAX_COOKING_TIME, MIN_COOKING_TIME,
-                        MIN_AMOUNT, MAX_AMOUNT)
+                        MIN_AMOUNT, MAX_AMOUNT, HEX_REGEX)
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=СHARFIELD_MAX_LENGTH, unique=True,
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH, unique=True,
                             verbose_name='Имя')
     color = models.CharField(max_length=COLOR_LENGTH, verbose_name='Цвет',
-                             default='#ffffff')
+                             default='#ffffff', validators=[
+                                 RegexValidator(regex=HEX_REGEX,
+                                                message='Используйте HEX код.')
+                                                ])
     slug = models.SlugField(unique=True)
 
     class Meta:
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
 
-    def clean_color(self):
-        if not re.match(r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$', self.color):
-            raise ValidationError(
-                'Некорректный формат цвета. Используйте HEX код.')
-
     def __str__(self):
-        return f"{self.name} ({self.slug})"
+        return f'{self.name} ({self.slug})'
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=СHARFIELD_MAX_LENGTH,
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH,
                             verbose_name='Название')
-    measurement_unit = models.CharField(max_length=СHARFIELD_MAX_LENGTH,
+    measurement_unit = models.CharField(max_length=CHARFIELD_MAX_LENGTH,
                                         verbose_name='Единица измерения')
 
     class Meta:
@@ -54,7 +50,7 @@ class Receipt(models.Model):
     tags = models.ManyToManyField(Tag, verbose_name='Тэги')
     image = models.ImageField(upload_to='images/recipes/',
                               verbose_name='Картинка')
-    name = models.CharField(max_length=СHARFIELD_MAX_LENGTH,
+    name = models.CharField(max_length=CHARFIELD_MAX_LENGTH,
                             verbose_name='Название')
     text = models.TextField(verbose_name='Описание')
     cooking_time = models.PositiveSmallIntegerField(
@@ -70,7 +66,7 @@ class Receipt(models.Model):
         verbose_name_plural = 'Рецепты'
 
     def __str__(self):
-        return f"{self.name} - {self.author}"
+        return f'{self.name} - {self.author}'
 
 
 class ReceiptIngredient(models.Model):
@@ -90,12 +86,13 @@ class ReceiptIngredient(models.Model):
         verbose_name_plural = 'Ингредиенты рецептов'
 
     def __str__(self):
-        return f"{self.ingredient} - {self.recipe}"
+        return f'{self.ingredient} - {self.recipe}'
 
 
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,
-                             verbose_name='Пользователь')
+                             verbose_name='Пользователь',
+                             related_name='favorites')
     recipe = models.ForeignKey(Receipt, on_delete=models.CASCADE,
                                related_name='favorites',
                                verbose_name='Рецепт')
@@ -109,7 +106,7 @@ class Favorite(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.recipe}"
+        return f'{self.user} - {self.recipe}'
 
 
 class ShoppingCart(models.Model):
@@ -129,4 +126,4 @@ class ShoppingCart(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.recipe}"
+        return f'{self.user} - {self.recipe}'

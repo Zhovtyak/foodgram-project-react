@@ -93,15 +93,12 @@ class ReceiptGetSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         return (request and request.user.is_authenticated
-                and Favorite.objects.filter(
-                    user=request.user, recipe=obj).exists())
+                and request.user.favorites.filter(recipe=obj).exists())
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return ShoppingCart.objects.filter(
-                user=request.user, recipe=obj).exists()
-        return False
+        return (request and request.user.is_authenticated
+                and request.user.shopping_carts.filter(recipe=obj).exists())
 
 
 class Base64EncodedImageField(serializers.ImageField):
@@ -137,7 +134,7 @@ class ReceiptCreateSerializer(serializers.ModelSerializer):
 
     def validate_cooking_time(self, cooking_time):
         if (cooking_time > MAX_COOKING_TIME
-                and cooking_time < MIN_COOKING_TIME):
+                or cooking_time < MIN_COOKING_TIME):
             raise serializers.ValidationError(
                 'Время приготовления должно быть в диапазоне 1-10000')
         return cooking_time
@@ -210,12 +207,25 @@ class ReceiptCreateSerializer(serializers.ModelSerializer):
         return ReceiptGetSerializer(instance, context=self.context).data
 
 
+class ReceiptRepresantaionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Receipt
+        fields = ['id', 'name', 'image', 'cooking_time']
+
+
 class UserSubscriptionSerializer(UserSerializer):
-    recipes = ReceiptGetSerializer(many=True, read_only=True)
+    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(read_only=True)
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['recipes', 'recipes_count']
+
+    def get_recipes(self, obj):
+        limit = self.context['request'].query_params.get('recipes_limit')
+        if limit:
+            limit = int(limit)
+        recipes = obj.recipes.all()[:limit] if limit else obj.recipes.all()
+        return ReceiptRepresantaionSerializer(recipes, many=True).data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
@@ -225,15 +235,10 @@ class SubscribeSerializer(serializers.ModelSerializer):
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=Subscribe.objects.all(),
-                fields=['user', 'author']
-            )
-        ]
+                fields=['user', 'author'])]
 
         def validate(self, data):
-            user = data['user']
-            author = data['author']
-
-            if user == author:
+            if data['user'] == data['author']:
                 raise serializers.ValidationError('Нельзя подписаться на себя')
             return data
 
@@ -252,12 +257,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['id'] = instance.recipe.id
-        representation['name'] = instance.recipe.name
-        representation['image'] = instance.recipe.image.url
-        representation['cooking_time'] = instance.recipe.cooking_time
-        return representation
+        return ReceiptRepresantaionSerializer(instance.recipe).data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
@@ -274,9 +274,4 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['id'] = instance.recipe.id
-        representation['name'] = instance.recipe.name
-        representation['image'] = instance.recipe.image.url
-        representation['cooking_time'] = instance.recipe.cooking_time
-        return representation
+        return ReceiptRepresantaionSerializer(instance.recipe).data

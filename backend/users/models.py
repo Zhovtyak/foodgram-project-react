@@ -8,10 +8,15 @@ from .constants import EMAIL_LENGTH, NAME_LENGTH
 class User(AbstractUser):
     email = models.EmailField(max_length=EMAIL_LENGTH, unique=True,
                               verbose_name='Почта')
+    username = models.CharField(max_length=NAME_LENGTH, unique=True,
+                                verbose_name='Имя пользователя')
     first_name = models.CharField(max_length=NAME_LENGTH, blank=True,
                                   verbose_name='Имя')
     last_name = models.CharField(max_length=NAME_LENGTH, blank=True,
                                  verbose_name='Фамилия')
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -48,4 +53,4 @@ class Subscribe(models.Model):
                 'Пользователь не может подписаться сам на себя.')
 
     def __str__(self):
-        return f"{self.user} - {self.author}"
+        return f'{self.user} - {self.author}'

@@ -63,7 +63,8 @@ class UserViewSet(viewsets.ModelViewSet):
         ).annotate(recipes_count=Count('recipes'))
 
         page = self.paginate_queryset(subscribed_authors)
-        serializer = UserSubscriptionSerializer(page, many=True)
+        serializer = UserSubscriptionSerializer(page, many=True,
+                                                context={"request": request})
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'],
@@ -150,9 +151,6 @@ class ReceiptViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'],
             permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
-        cart_items = ShoppingCart.objects.filter(user=request.user)
-        recipes = Receipt.objects.filter(
-            id__in=cart_items.values_list(
-                'recipe', flat=True)).prefetch_related('receipt_ingredient')
+        recipes = Receipt.objects.filter(shopping_carts__user=request.user)
         return HttpResponse(forming_shopping_cart_file(recipes),
                             content_type='text/plain')
