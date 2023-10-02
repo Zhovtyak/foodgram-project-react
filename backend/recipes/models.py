@@ -12,10 +12,9 @@ class Tag(models.Model):
     name = models.CharField(max_length=CHARFIELD_MAX_LENGTH, unique=True,
                             verbose_name='Имя')
     color = models.CharField(max_length=COLOR_LENGTH, verbose_name='Цвет',
-                             default='#ffffff', validators=[
-                                 RegexValidator(regex=HEX_REGEX,
-                                                message='Используйте HEX код.')
-                                                ])
+                             default='#ffffff',
+                             validators=[RegexValidator(regex=HEX_REGEX,
+                                         message='Используйте HEX код.')])
     slug = models.SlugField(unique=True)
 
     class Meta:
