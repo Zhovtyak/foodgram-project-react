@@ -64,7 +64,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         page = self.paginate_queryset(subscribed_authors)
         serializer = UserSubscriptionSerializer(page, many=True,
-                                                context={"request": request})
+                                                context={'request': request})
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'],
@@ -73,10 +73,14 @@ class UserViewSet(viewsets.ModelViewSet):
         author = get_object_or_404(User, id=pk)
         if request.method == 'POST':
             serializer = SubscribeSerializer(
-                data={'user': request.user.pk, 'author': author.pk})
+                data={'user': request.user.pk, 'author': author.pk},
+                context={'request': request})
             if serializer.is_valid():
                 serializer.save()
-            return Response(status=status.HTTP_201_CREATED)
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
         subscribe = get_object_or_404(
             Subscribe, user=request.user, author=author)
@@ -151,6 +155,8 @@ class ReceiptViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'],
             permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
-        recipes = Receipt.objects.filter(shopping_carts__user=request.user)
+        recipes = Receipt.objects.filter(
+            shopping_carts__user=request.user).prefetch_related(
+                'receipt_ingredient__ingredient')
         return HttpResponse(forming_shopping_cart_file(recipes),
                             content_type='text/plain')

@@ -8,10 +8,31 @@ password: ritisrulez123
 ##### Для его запуска на локальном сервере необходимо:
 HINT: описание инструкции для запуска с Linux, на котором установлен Docker
 1) Склонировать репозиторий:
+# praktikum_new_diplom
+Проект Foodgram является простой социальной сетью, где люди, зарегистировавшись на сайте, могут делиться своими рецептами. На сайте можно просматривать рецепты, создавать их, добавлять в избранное, список покупок, подписываться на автора, скачать список покупок. Ознакомиться с проектом можно на сайте https://pumpkin.hopto.org/
+
+ДАННЫЕ РЕВЬЮЕРУ ДЛЯ ВХОДА В АДМИНКУ:
+email: ritis@admin.com
+password: ritisrulez123
+
+##### Для его запуска на локальном сервере необходимо:
+HINT: описание инструкции для запуска с Linux, на котором установлен Docker
+1) Склонировать репозиторий:
 ```
 git clone https://github.com/Zhovtyak/foodgram-project-react.git
 ```
-2) Перейти в директорию foodgram-project-react/infra/, провести установку контейнеров, и их совместный запуск, используя файл docker-compose.production.yml:
+2) Перейти в директорию foodgram-project-react/infra/, создать файл .env. Например с такими данными:
+```
+POSTGRES_USER=django_user
+POSTGRES_PASSWORD=mysecretpassword
+POSTGRES_DB=django
+DB_HOST=db
+DB_PORT=5432
+SECRET_KEY=mysecretkey
+DEBUG=False
+ALLOWED_HOSTS=127.0.0.1,localhost
+```
+2) Провести установку контейнеров, и их совместный запуск, используя файл docker-compose.production.yml:
 ```
 sudo docker compose -f docker-compose.production.yml up -d
 ```
@@ -39,3 +60,7 @@ sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/sta
 ```
 /api/recipes/create
 ```
+
+Автор проекта: Максим Жовтяк
+Frontend сайта разработан и предоставлен компанией "Яндекс" в учебных целях
+Для разработки backend'а использовались Django, REST API, Python, Docker

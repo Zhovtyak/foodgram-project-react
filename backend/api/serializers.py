@@ -222,10 +222,12 @@ class UserSubscriptionSerializer(UserSerializer):
 
     def get_recipes(self, obj):
         limit = self.context['request'].query_params.get('recipes_limit')
-        if limit:
+        try:
             limit = int(limit)
-        recipes = obj.recipes.all()[:limit] if limit else obj.recipes.all()
-        return ReceiptRepresantaionSerializer(recipes, many=True).data
+        except (TypeError, ValueError):
+            limit = None
+        return ReceiptRepresantaionSerializer(
+            obj.recipes.all()[:limit], many=True).data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
@@ -241,6 +243,10 @@ class SubscribeSerializer(serializers.ModelSerializer):
             if data['user'] == data['author']:
                 raise serializers.ValidationError('Нельзя подписаться на себя')
             return data
+
+    def to_representation(self, instance):
+        return UserSubscriptionSerializer(instance.user,
+                                          context=self.context).data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
